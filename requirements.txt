@@ -1,0 +1,7 @@
+langchain_aws==0.2.12
+langchain_core==0.3.35
+langchain_groq==0.2.4
+pandas==2.2.3
+plotly==6.0.0
+pymongo==4.11.1
+streamlit==1.42.0
