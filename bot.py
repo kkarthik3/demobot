@@ -120,12 +120,13 @@ if api_password and api_password == stored_password:
                 st.markdown(prompt)
             
             with st.chat_message("assistant"):
-                try:
-                    with st.spinner("Thinking..."):
-                        try:
-                            response = st.session_state.llm.invoke(st.session_state.messages)
-                        except Exception as e:
-                            print(e)
+                with st.spinner("Thinking..."):
+                    try:
+                        response = st.session_state.llm.invoke(st.session_state.messages)
+                        st.markdown(response.content)
+                        st.session_state.messages.append(AIMessage(content=response.content))
+                    except Exception as e:
+                        st.error(f"An error occurred: {e}")
                     st.markdown(response.content)
                     st.session_state.messages.append(AIMessage(content=response.content))
                 except Exception as e:
