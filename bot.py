@@ -15,7 +15,12 @@ st.set_page_config(
 # -------------------------------
 AWS_MODELS = {
     "Claude 4.1": "us.anthropic.claude-opus-4-1-20250805-v1:0",
-    "Llama 3.3 70B": "us.meta.llama3-3-70b-instruct-v1:0"
+    "Llama 3.3 70B": "us.meta.llama3-3-70b-instruct-v1:0",
+    "mini":"minimax.minimax-m2.5",
+    "devstral":"mistral.devstral-2-123b",
+    "gpt-oss":"openai.gpt-oss-120b-1:0",
+    "qwen - east-2":"qwen.qwen3-coder-480b-a35b-v1:0",
+    
 }
 
 GROQ_MODELS = {
@@ -35,7 +40,7 @@ with st.sidebar:
         selected_model = st.selectbox("Select Model", list(AWS_MODELS.keys()))
         model_id = AWS_MODELS[selected_model]
         temperature = st.slider("Temperature", 0.0, 1.0, 0.0, 0.1)
-        region = st.selectbox("AWS Region", ["us-east-1", "us-west-2", "eu-west-1"])
+        region = st.selectbox("AWS Region", ["us-east-1", "us-east-2", "eu-west-1"])
         max_tokens = None
     else:
         selected_model = st.selectbox("Select Model", list(GROQ_MODELS.keys()))
