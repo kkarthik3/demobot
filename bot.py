@@ -1,4 +1,3 @@
-```python
 import streamlit as st
 import os
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
@@ -150,4 +149,3 @@ if api_password and api_password == stored_password:
 
 else:
     st.warning("Please enter the correct API password to access the chat.")
-```
