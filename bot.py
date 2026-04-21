@@ -1,9 +1,9 @@
+```python
 import streamlit as st
 import os
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from langchain_aws import ChatBedrockConverse
 from langchain_groq import ChatGroq
-from uuid import UUID
 
 st.set_page_config(
     page_title="AI Chat Assistant",
@@ -11,78 +11,79 @@ st.set_page_config(
     layout="wide"
 )
 
-# Define available models for each provider
+# -------------------------------
+# Model Configurations
+# -------------------------------
 AWS_MODELS = {
     "Claude 3 Haiku": "anthropic.claude-3-haiku-20240307-v1:0",
-    "llama 3.3 70b" : "us.meta.llama3-3-70b-instruct-v1:0"
+    "Llama 3.3 70B": "us.meta.llama3-3-70b-instruct-v1:0"
 }
 
 GROQ_MODELS = {
     "Mixtral 8x7B": "mixtral-8x7b-32768",
-    "LLaMA2 70B": "llama-3.3-70b-versatile",
+    "LLaMA3 70B": "llama-3.3-70b-versatile",
 }
 
+# -------------------------------
+# Sidebar Configuration
+# -------------------------------
 with st.sidebar:
     st.title("Chat Configuration")
-    
-    # Model provider selection
+
     provider = st.selectbox("Select Provider", ["AWS Bedrock", "Groq"])
-    
-    # Model selection based on provider
+
     if provider == "AWS Bedrock":
-        selected_model = st.selectbox("Select Model", list(AWS_MODELS.keys()), index=0)
+        selected_model = st.selectbox("Select Model", list(AWS_MODELS.keys()))
         model_id = AWS_MODELS[selected_model]
         temperature = st.slider("Temperature", 0.0, 1.0, 0.0, 0.1)
         region = st.selectbox("AWS Region", ["us-east-1", "us-west-2", "eu-west-1"])
-    else:  # Groq
-        selected_model = st.selectbox("Select Model", list(GROQ_MODELS.keys()), index=0)
+        max_tokens = None
+    else:
+        selected_model = st.selectbox("Select Model", list(GROQ_MODELS.keys()))
         model_id = GROQ_MODELS[selected_model]
         temperature = st.slider("Temperature", 0.0, 1.0, 0.0, 0.1)
-        max_tokens = st.number_input("Max Tokens", value=None, min_value=1, step=1)
-    
-    # Password input for API keys
+        max_tokens = st.number_input("Max Tokens", min_value=1, step=1, value=512)
+        region = None
+
     api_password = st.text_input("Enter API Password", type="password")
     stored_password = os.getenv("API_PASSWORD")
-    
-    # System message configuration
-    system_message = st.text_area(
-        "System Message",
-        value="",
-        height=100
-    )
 
-# Initialize session state
+    system_message = st.text_area("System Message", value="", height=100)
+
+# -------------------------------
+# Session State Initialization
+# -------------------------------
 if "messages" not in st.session_state:
     st.session_state.messages = []
+
 if "initialized" not in st.session_state:
     st.session_state.initialized = False
+
 if "current_model" not in st.session_state:
     st.session_state.current_model = None
 
-# Reset initialization if model changes
+# Reset if model changes
 if st.session_state.current_model != model_id:
     st.session_state.initialized = False
     st.session_state.current_model = model_id
 
-# Verify password and initialize LLM
+# -------------------------------
+# Authentication + LLM Setup
+# -------------------------------
 if api_password and api_password == stored_password:
+
     if not st.session_state.initialized:
-        if provider == "AWS Bedrock":
-            try:
+        try:
+            if provider == "AWS Bedrock":
                 llm = ChatBedrockConverse(
                     model=model_id,
                     temperature=temperature,
-                    max_tokens=None,
+                    max_tokens=max_tokens,
                     aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
                     aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
                     region_name=region,
                 )
-                st.session_state.llm = llm
-                st.session_state.initialized = True
-            except Exception as e:
-                st.error(f"Error initializing AWS Bedrock: {e}")
-        else:
-            try:
+            else:
                 llm = ChatGroq(
                     model=model_id,
                     temperature=temperature,
@@ -91,46 +92,62 @@ if api_password and api_password == stored_password:
                     max_retries=2,
                     api_key=os.getenv("GROQ_API_KEY")
                 )
-                st.session_state.llm = llm
-                st.session_state.initialized = True
-            except Exception as e:
-                st.error(f"Error initializing Groq: {e}")
-    
-    # Update system message if changed
+
+            st.session_state.llm = llm
+            st.session_state.initialized = True
+
+        except Exception as e:
+            st.error(f"Error initializing model: {e}")
+
+    # -------------------------------
+    # System Message Handling
+    # -------------------------------
     if len(st.session_state.messages) == 0 or (
-        isinstance(st.session_state.messages[0], SystemMessage) and 
+        isinstance(st.session_state.messages[0], SystemMessage) and
         st.session_state.messages[0].content != system_message
     ):
         st.session_state.messages = [SystemMessage(content=system_message)]
-    
-    # Main chat interface
+
+    # -------------------------------
+    # Chat UI
+    # -------------------------------
     st.title("AI Chat Assistant")
-    
-    # Display chat messages
+
     for message in st.session_state.messages:
         if not isinstance(message, SystemMessage):
             with st.chat_message(message.type):
                 st.markdown(message.content)
-    
-    # Chat input
+
+    # -------------------------------
+    # User Input
+    # -------------------------------
     if prompt := st.chat_input("Type your message here..."):
         if prompt.strip():
             st.session_state.messages.append(HumanMessage(content=prompt))
+
             with st.chat_message("user"):
                 st.markdown(prompt)
-            
+
+            # -------------------------------
+            # Assistant Response (FIXED)
+            # -------------------------------
             with st.chat_message("assistant"):
                 with st.spinner("Thinking..."):
                     try:
                         response = st.session_state.llm.invoke(st.session_state.messages)
-                        st.markdown(response.content)
-                        st.session_state.messages.append(AIMessage(content=response.content))
+
+                        # Safe usage of response
+                        if response and hasattr(response, "content"):
+                            st.markdown(response.content)
+                            st.session_state.messages.append(
+                                AIMessage(content=response.content)
+                            )
+                        else:
+                            st.error("Received empty response from model.")
+
                     except Exception as e:
                         st.error(f"An error occurred: {e}")
-                    st.markdown(response.content)
-                    st.session_state.messages.append(AIMessage(content=response.content))
-                except Exception as e:
-                    st.error(f"An error occurred: {e}")
 
 else:
     st.warning("Please enter the correct API password to access the chat.")
+```
