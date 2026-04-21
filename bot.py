@@ -14,7 +14,7 @@ st.set_page_config(
 # Model Configurations
 # -------------------------------
 AWS_MODELS = {
-    "Claude 3.5 Haiku": "us.anthropic.claude-3-5-haiku-20241022-v1:0",
+    "Claude 4.1": "us.anthropic.claude-opus-4-1-20250805-v1:0",
     "Llama 3.3 70B": "us.meta.llama3-3-70b-instruct-v1:0"
 }
 
